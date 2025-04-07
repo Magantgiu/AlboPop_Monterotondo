@@ -1,0 +1,48 @@
+name: AlboPOP Monterotondo RSS Generator
+
+on:
+  schedule:
+    # Esegui ogni giorno alle 8:00 UTC (modifica come preferisci)
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+    # Permette di eseguire manualmente il workflow dalla UI di GitHub
+
+jobs:
+  generate-rss:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests beautifulsoup4 pytz feedgenerator
+        
+    - name: Run scraper
+      run: python AlboPop_Monterotondo_agent.py
+      
+    - name: Archive feed (optional)
+      run: python archive_feed.py
+      
+    - name: Commit and push if changed
+      run: |
+        git config --global user.name 'GitHub Actions'
+        git config --global user.email 'actions@github.com'
+        git add albopop_monterotondo.xml
+        git add archive/* || true
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Aggiornamento automatico feed RSS" && git push)
