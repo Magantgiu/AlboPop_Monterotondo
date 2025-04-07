@@ -16,8 +16,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("albopop_scraper.log"),
-        logging.StreamHandler()
+        logging.StreamHandler()  # Rimuovi FileHandler per evitare di scrivere file di log
     ]
 )
 
@@ -329,8 +328,8 @@ def navigate_to_next_page(session, soup, current_page):
             return None
             
         # Salva la risposta per debugging
-        with open(f"response_page_{next_page_num}.html", "w", encoding="utf-8") as f:
-            f.write(response.text)
+        # with open(f"response_page_{next_page_num}.html", "w", encoding="utf-8") as f:
+          #  f.write(response.text)
             
         new_soup = BeautifulSoup(response.text, "html.parser")
         
@@ -460,7 +459,8 @@ def generate_rss_feed(documents, output_path="albopop_monterotondo.xml"):
             link="https://servizionline.hspromilaprod.hypersicapp.net/cmsmonterotondo/portale/albopretorio/albopretorioconsultazione.aspx?P=400",
             description="Feed RSS non ufficiale dell'Albo Pretorio del Comune di Monterotondo",
             language="it",
-            feed_url="https://example.com/albopop_monterotondo.xml"  # Sostituisci con l'URL dove verrà pubblicato il feed
+            # Usa un URL pubblico del tuo repository GitHub dove sarà pubblicato il feed
+            feed_url="https://raw.githubusercontent.com/TUO_USERNAME/TUO_REPO/main/albopop_monterotondo.xml"
         )
         
         for doc in documents:
@@ -496,7 +496,7 @@ if __name__ == "__main__":
     logging.info("Inizio scraping dell'Albo Pretorio di Monterotondo...")
     
     # Numero di pagine da elaborare
-    NUM_PAGES = 2
+    NUM_PAGES = 5
     
     try:
         # Prima prova con requests
