@@ -121,6 +121,24 @@ def parse_table_data(soup):
                 data_pubbl = cells[2].text.strip() if cells[2] else ""
                 data_scadenza = cells[3].text.strip() if cells[3] else ""
                 
+                # NUOVO: Verifica che non sia un messaggio di paginazione
+                # Filtra righe che contengono testi come "(Trovati X risultati) - Pagina X di X"
+                if "Trovati" in oggetto and "Pagina" in oggetto:
+                    logging.info(f"Ignorata riga di paginazione: {oggetto}")
+                    continue
+                
+                # NUOVO: Verifica che sia presente un numero documento valido
+                # Di solito le righe di intestazione o paginazione non hanno numeri documento
+                if not num_doc or num_doc.isspace():
+                    logging.info(f"Ignorata riga senza numero documento: {oggetto}")
+                    continue
+                
+                # NUOVO: Verifica che ci sia una data di pubblicazione valida
+                # Le righe di paginazione spesso non hanno date valide
+                if not data_pubbl or not any(char.isdigit() for char in data_pubbl):
+                    logging.info(f"Ignorata riga senza data pubblicazione valida: {oggetto}")
+                    continue
+                
                 # Crea un ID veramente univoco usando una combinazione di elementi
                 # e aggiungendo un timestamp in millisecondi
                 timestamp_ms = int(time.time() * 1000)
@@ -140,9 +158,6 @@ def parse_table_data(soup):
             except Exception as e:
                 logging.error(f"Errore nell'elaborazione di una riga della tabella: {e}")
                 
-        return items
-    except Exception as e:
-        logging.error(f"Errore nell'elaborazione della tabella: {e}")
         return items
     except Exception as e:
         logging.error(f"Errore nell'elaborazione della tabella: {e}")
