@@ -490,7 +490,7 @@ def generate_rss_feed(documents, output_path="albopop_monterotondo.xml"):
         
         return output_path
     except Exception as e:
-        logging.error(f"Error
+        logging.error(f"Errore nella generazione del feed RSS: {e}")
 
 def scrape_with_selenium():
     """Alternativa di scraping usando Selenium (da implementare se necessario)"""
