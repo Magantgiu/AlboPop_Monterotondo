@@ -3,7 +3,7 @@ name: AlboPOP Monterotondo RSS Generator
 on:
   schedule:
     # Esegui ogni giorno alle 8:00 UTC (modifica come preferisci)
-    - cron: '0 8 * * *'
+    - cron: '0 8 * * 1-5'
   workflow_dispatch:
     # Permette di eseguire manualmente il workflow dalla UI di GitHub
 
