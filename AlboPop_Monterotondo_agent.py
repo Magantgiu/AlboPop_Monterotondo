@@ -121,12 +121,17 @@ def parse_table_data(soup):
                 data_pubbl = cells[2].text.strip() if cells[2] else ""
                 data_scadenza = cells[3].text.strip() if cells[3] else ""
                 
+                # Crea un ID veramente univoco usando una combinazione di elementi
+                # e aggiungendo un timestamp in millisecondi
+                timestamp_ms = int(time.time() * 1000)
+                unique_id = f"monterotondo-{num_doc}-{data_pubbl.replace('/', '')}-{timestamp_ms}"
+                
                 # Crea entry
                 item = {
                     "title": f"{num_doc} - {oggetto}",
                     "description": f"Numero: {num_doc}<br>Data pubblicazione: {data_pubbl}<br>Data scadenza: {data_scadenza}<br>",
                     "link": BASE_URL,
-                    "guid": f"monterotondo-{num_doc}-{data_pubbl.replace('/', '')}" if data_pubbl else f"monterotondo-{num_doc}-{int(time.time())}",
+                    "guid": unique_id,
                     "pubDate": parse_date(data_pubbl)
                 }
                 
@@ -135,6 +140,9 @@ def parse_table_data(soup):
             except Exception as e:
                 logging.error(f"Errore nell'elaborazione di una riga della tabella: {e}")
                 
+        return items
+    except Exception as e:
+        logging.error(f"Errore nell'elaborazione della tabella: {e}")
         return items
     except Exception as e:
         logging.error(f"Errore nell'elaborazione della tabella: {e}")
@@ -454,13 +462,16 @@ def scrape_albo_pretorio(num_pages=3):
 def generate_rss_feed(documents, output_path="albopop_monterotondo.xml"):
     """Genera un feed RSS dai documenti raccolti"""
     try:
+        # Definisci l'URL pubblico del feed
+        feed_url = "https://raw.githubusercontent.com/TUO_USERNAME/TUO_REPO/main/albopop_monterotondo.xml"
+        # Sostituisci TUO_USERNAME e TUO_REPO con i valori corretti del tuo repository GitHub
+        
         feed = feedgenerator.Rss201rev2Feed(
             title="AlboPOP Comune di Monterotondo",
             link="https://servizionline.hspromilaprod.hypersicapp.net/cmsmonterotondo/portale/albopretorio/albopretorioconsultazione.aspx?P=400",
             description="Feed RSS non ufficiale dell'Albo Pretorio del Comune di Monterotondo",
             language="it",
-            # Usa un URL pubblico del tuo repository GitHub dove sarà pubblicato il feed
-            feed_url="https://raw.githubusercontent.com/TUO_USERNAME/TUO_REPO/main/albopop_monterotondo.xml"
+            feed_url=feed_url  # Questo aggiunge l'atom:link con rel="self"
         )
         
         for doc in documents:
@@ -474,13 +485,12 @@ def generate_rss_feed(documents, output_path="albopop_monterotondo.xml"):
         
         with open(output_path, "w", encoding="utf-8") as f:
             feed.write(f, "utf-8")
-            
+        
         logging.info(f"Feed RSS generato correttamente in: {output_path}")
         
         return output_path
     except Exception as e:
-        logging.error(f"Errore nella generazione del feed RSS: {e}")
-        return None
+        logging.error(f"Error
 
 def scrape_with_selenium():
     """Alternativa di scraping usando Selenium (da implementare se necessario)"""
