@@ -463,8 +463,7 @@ def generate_rss_feed(documents, output_path="albopop_monterotondo.xml"):
     """Genera un feed RSS dai documenti raccolti"""
     try:
         # Definisci l'URL pubblico del feed
-        feed_url = "https://raw.githubusercontent.com/TUO_USERNAME/TUO_REPO/main/albopop_monterotondo.xml"
-        # Sostituisci TUO_USERNAME e TUO_REPO con i valori corretti del tuo repository GitHub
+        feed_url = "https://raw.githubusercontent.com/Magantgiu/AlboPop_Monterotondo/main/docs/albopop_monterotondo.xml"
         
         feed = feedgenerator.Rss201rev2Feed(
             title="AlboPOP Comune di Monterotondo",
