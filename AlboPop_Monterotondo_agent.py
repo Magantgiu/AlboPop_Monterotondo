@@ -96,7 +96,7 @@ def get_viewstate_data(soup):
         return None
 
 def parse_table_data(soup):
-    """Estrae i dati dalla tabella dell'albo pretorio"""
+    """Estrae i dati dalla tabella dell'albo pretorio, escludendo informazioni di paginazione"""
     items = []
     try:
         # Identifica la tabella principale
@@ -104,43 +104,88 @@ def parse_table_data(soup):
         if not table:
             logging.error("Tabella dei risultati non trovata")
             return items
-            
-        # Estrai le righe della tabella (escludi l'intestazione e il footer)
-        rows = table.find_all("tr")[1:-1]  # Prima riga è intestazione, ultima potrebbe essere paginazione
         
-        for row in rows:
-            try:
-                # Estrai le celle
-                cells = row.find_all("td")
-                if len(cells) < 4:  # Verifica che ci siano abbastanza celle
+        # Prima cerchiamo eventuali messaggi di paginazione o info di visualizzazione
+        # Questi spesso appaiono come testo nella tabella ma non in celle normali dell'albo
+        pagination_patterns = [
+            "Trovati", "risultati", "Pagina", "di", 
+            "ore ago", "minuti fa", "secondi fa"
+        ]
+        
+        # Estrai le righe della tabella (escludi l'intestazione)
+        all_rows = table.find_all("tr")
+        
+        # Le righe valide sono quelle che contengono dati effettivi degli atti
+        valid_rows = []
+        
+        for i, row in enumerate(all_rows):
+            # Salta la riga di intestazione (prima riga)
+            if i == 0:
+                continue
+                
+            # Estrai il testo completo della riga
+            row_text = row.get_text(strip=True)
+            
+            # Verifica se la riga contiene modelli di testo tipici della paginazione
+            is_pagination = False
+            for pattern in pagination_patterns:
+                if pattern in row_text:
+                    is_pagination = True
+                    logging.info(f"Identificata riga di paginazione: '{row_text[:50]}...'")
+                    break
+                    
+            if is_pagination:
+                continue
+                
+            # Verifica ulteriore: se la riga ha meno di 4 celle, probabilmente non è un atto valido
+            cells = row.find_all("td")
+            if len(cells) < 4:
+                logging.info(f"Riga con celle insufficienti ignorata: '{row_text[:50]}...'")
+                continue
+                
+            # Verifica che il primo campo sia un numero o identificativo atto
+            num_doc = cells[0].text.strip() if cells[0] else ""
+            if not num_doc or not any(char.isdigit() for char in num_doc):
+                logging.info(f"Riga senza numero documento valido ignorata: '{row_text[:50]}...'")
+                continue
+                
+            # Verifica che ci sia un oggetto significativo (non solo numeri o caratteri speciali)
+            oggetto = cells[1].text.strip() if cells[1] else ""
+            if len(oggetto) < 3 or oggetto.isdigit():
+                logging.info(f"Riga senza oggetto significativo ignorata: '{row_text[:50]}...'")
+                continue
+                
+            # Verifica date
+            data_pubbl = cells[2].text.strip() if cells[2] else ""
+            data_scadenza = cells[3].text.strip() if cells[3] else ""
+            
+            # Verifica che la data di pubblicazione abbia un formato valido
+            valid_date = False
+            for formato in ["%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y"]:
+                try:
+                    datetime.datetime.strptime(data_pubbl, formato)
+                    valid_date = True
+                    break
+                except ValueError:
                     continue
                     
-                # Estrai dati base
+            if not valid_date:
+                logging.info(f"Riga con data di pubblicazione non valida ignorata: '{data_pubbl}'")
+                continue
+                
+            # Se arriva qui, la riga è valida
+            valid_rows.append(row)
+            
+        # Ora elabora solo le righe valide
+        for row in valid_rows:
+            try:
+                cells = row.find_all("td")
                 num_doc = cells[0].text.strip() if cells[0] else ""
                 oggetto = cells[1].text.strip() if cells[1] else "Documento senza titolo"
                 data_pubbl = cells[2].text.strip() if cells[2] else ""
                 data_scadenza = cells[3].text.strip() if cells[3] else ""
                 
-                # NUOVO: Verifica che non sia un messaggio di paginazione
-                # Filtra righe che contengono testi come "(Trovati X risultati) - Pagina X di X"
-                if "Trovati" in oggetto and "Pagina" in oggetto:
-                    logging.info(f"Ignorata riga di paginazione: {oggetto}")
-                    continue
-                
-                # NUOVO: Verifica che sia presente un numero documento valido
-                # Di solito le righe di intestazione o paginazione non hanno numeri documento
-                if not num_doc or num_doc.isspace():
-                    logging.info(f"Ignorata riga senza numero documento: {oggetto}")
-                    continue
-                
-                # NUOVO: Verifica che ci sia una data di pubblicazione valida
-                # Le righe di paginazione spesso non hanno date valide
-                if not data_pubbl or not any(char.isdigit() for char in data_pubbl):
-                    logging.info(f"Ignorata riga senza data pubblicazione valida: {oggetto}")
-                    continue
-                
-                # Crea un ID veramente univoco usando una combinazione di elementi
-                # e aggiungendo un timestamp in millisecondi
+                # Crea un ID univoco
                 timestamp_ms = int(time.time() * 1000)
                 unique_id = f"monterotondo-{num_doc}-{data_pubbl.replace('/', '')}-{timestamp_ms}"
                 
@@ -158,9 +203,13 @@ def parse_table_data(soup):
             except Exception as e:
                 logging.error(f"Errore nell'elaborazione di una riga della tabella: {e}")
                 
+        # Log del numero di elementi validati
+        logging.info(f"Totale elementi validi estratti: {len(items)}")
         return items
     except Exception as e:
         logging.error(f"Errore nell'elaborazione della tabella: {e}")
+        import traceback
+        logging.error(traceback.format_exc())
         return items
 
 def parse_date(date_str):
